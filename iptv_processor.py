@@ -33,7 +33,7 @@ def parse_txt(content):
         if line.strip():
             parts = line.split(',', 1)
             if len(parts) == 2:
-                name, url = parts.strip(), parts.strip()
+                name, url = parts[0].strip(), parts[1].strip()  # Corrected here
             else:
                 url = line.strip()
                 name = urlparse(url).netloc.split('.')[-2].capitalize()

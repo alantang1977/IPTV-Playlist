@@ -43,7 +43,7 @@ def parse_txt(content):
 def fetch_source(source):
     """获取内容 (支持本地文件和远程URL)"""
     try:
-        if source.startswith(('http://', 'https://')):
+        if source.startswith(('https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt', 'https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/JunTV/refs/heads/main/output/result.m3u')):
             response = requests.get(source, timeout=15)
             response.raise_for_status()
             return response.text

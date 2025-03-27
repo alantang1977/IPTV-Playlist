@@ -1,121 +1,134 @@
-import os
+#!/usr/bin/env python3
 import re
 import requests
 from urllib.parse import urlparse
+from pathlib import Path
+from collections import defaultdict
 
-def natural_sort_key(s):
-    """自然排序键生成函数，支持数字顺序"""
-    return [
-        int(text) if text.isdigit() else text.lower()
-        for text in re.split(r'(\d+)', s)
+class M3UProcessor:
+    def __init__(self):
+        self.channels = defaultdict(list)
+        self.unique_urls = set()
+
+    def parse_file(self, content, base_url=None):
+        entries = []
+        extinf_pattern = re.compile(
+            r'#EXTINF:-1\s+(.*?),\s*(.*)',
+            re.DOTALL
+        )
+        current = {}
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            if line.startswith('#EXTINF'):
+                match = extinf_pattern.search(line)
+                if match:
+                    attrs = self.parse_attributes(match.group(1))
+                    current = {
+                        'tvg_name': attrs.get('tvg-name', ''),
+                        'tvg_logo': attrs.get('tvg-logo', ''),
+                        'group': attrs.get('group-title', '未分类'),
+                        'name': match.group(2).strip(),
+                    }
+            elif line and not line.startswith('#'):
+                if current and line:
+                    current['url'] = self.resolve_url(line, base_url)
+                    if current['url'] not in self.unique_urls:
+                        entries.append(current)
+                        self.unique_urls.add(current['url'])
+                    current = {}
+        return entries
+
+    @staticmethod
+    def parse_attributes(attr_str):
+        attrs = {}
+        matches = re.finditer(r'(\S+?)="(.*?)"', attr_str)
+        for match in matches:
+            attrs[match.group(1)] = match.group(2)
+        return attrs
+
+    def resolve_url(self, url, base_url):
+        if urlparse(url).scheme in ('http', 'https', 'rtmp'):
+            return url
+        if base_url:
+            return requests.compat.urljoin(base_url, url)
+        return url
+
+    def process_sources(self, urls):
+        all_entries = []
+        
+        for url in urls:
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                
+                content_type = response.headers.get('Content-Type', '')
+                content = response.text
+                
+                if url.endswith(('.m3u', '.m3u8')):
+                    entries = self.parse_file(content, url)
+                elif url.endswith('.txt'):
+                    entries = self.parse_txt(content)
+                else:
+                    entries = []
+                
+                all_entries.extend(entries)
+                print(f"Processed {url} ({len(entries)} channels)")
+                
+            except Exception as e:
+                print(f"Error processing {url}: {str(e)}")
+        
+        return all_entries
+
+    def parse_txt(self, content):
+        entries = []
+        for line in content.split('\n'):
+            line = line.strip()
+            if line and not line.startswith('#'):
+                parts = line.split(',')
+                if len(parts) >= 2:
+                    entries.append({
+                        'name': parts.strip(),
+                        'url': parts[-1].strip(),
+                        'group': '未分类',
+                        'tvg_name': parts.strip(),
+                        'tvg_logo': ''
+                    })
+        return entries
+
+    def generate_m3u(self, entries):
+        m3u_content = ["#EXTM3U"]
+        for entry in entries:
+            m3u_content.append(
+                f'#EXTINF:-1 tvg-name="{entry["tvg_name"]}" '
+                f'tvg-logo="{entry["tvg_logo"]}" '
+                f'group-title="{entry["group"]}",{entry["name"]}\n'
+                f'{entry["url"]}'
+            )
+        return '\n'.join(m3u_content)
+
+    def generate_txt(self, entries):
+        txt_content = []
+        for entry in entries:
+            txt_content.append(f'{entry["name"]}, {entry["url"]}')
+        return '\n'.join(txt_content)
+
+if __name__ == "__main__":
+    # 配置源列表（支持多个源）
+    SOURCE_URLS = [
+        "https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/JunTV/refs/heads/main/output/result.m3u",
+        "https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt",
+        # 在此添加更多源...
     ]
 
-def parse_m3u(content):
-    """解析M3U/M3U8格式内容"""
-    channels = []
-    extinf_pattern = re.compile(r'#EXTINF:-?\d+.*?,(.*)')
+    processor = M3UProcessor()
+    entries = processor.process_sources(SOURCE_URLS)
     
-    lines = content.splitlines()
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if line.startswith('#EXTINF'):
-            match = extinf_pattern.match(line)
-            if match and (i+1) < len(lines):
-                name = match.group(1).strip()
-                url = lines[i+1].strip()
-                if url and not url.startswith('#'):
-                    channels.append({'name': name, 'url': url})
-    return channels
-
-def parse_txt(content):
-    """解析TXT格式内容"""
-    channels = []
-    for line in content.splitlines():
-        line = line.strip()
-        if line:
-            parts = line.split(',', 1)
-            if len(parts) == 2:
-                name, url = parts.strip(), parts.strip()
-            else:
-                url = line
-                name = urlparse(url).netloc.split('.')[-2].capitalize()
-            channels.append({'name': name, 'url': url})
-    return channels
-
-def fetch_source(source):
-    """获取内容（支持本地文件和远程URL）"""
-    try:
-        if source.startswith(('http://', 'https://')):
-            response = requests.get(source, timeout=15)
-            response.raise_for_status()
-            return response.text
-        elif os.path.exists(source):
-            with open(source, 'r', encoding='utf-8') as f:
-                return f.read()
-        else:
-            print(f"File not found: {source}")
-            return None
-    except Exception as e:
-        print(f"Error processing {source}: {str(e)}")
-        return None
-
-def process_sources(sources):
-    """处理所有输入源并去重排序"""
-    all_channels = []
-    seen_urls = set()
+    # 生成输出文件
+    with open('live.m3u', 'w', encoding='utf-8') as f:
+        f.write(processor.generate_m3u(entries))
     
-    for source in sources:
-        content = fetch_source(source)
-        if not content:
-            continue
-            
-        if source.endswith(('.m3u', '.m3u8')):
-            channels = parse_m3u(content)
-        elif source.endswith('.txt'):
-            channels = parse_txt(content)
-        else:
-            print(f"Unsupported file format: {source}")
-            continue
-            
-        for chan in channels:
-            if chan['url'] not in seen_urls:
-                seen_urls.add(chan['url'])
-                all_channels.append(chan)
+    with open('live.txt', 'w', encoding='utf-8') as f:
+        f.write(processor.generate_txt(entries))
     
-    # 按自然顺序排序
-    return sorted(all_channels, key=lambda x: natural_sort_key(x['name']))
-
-def generate_files(channels):
-    """生成输出文件"""
-    os.makedirs('output', exist_ok=True)
-    
-    # 生成M3U文件
-    with open('output/live.m3u', 'w', encoding='utf-8') as f:
-        f.write('#EXTM3U\n')
-        for chan in channels:
-            f.write(f'#EXTINF:-1,{chan["name"]}\n{chan["url"]}\n')
-    
-    # 生成TXT文件
-    with open('output/live.txt', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(chan['url'] for chan in channels))
-
-if __name__ == '__main__':
-    # 从环境变量获取输入源
-    sources = os.getenv('INPUT_SOURCES', '').split()
-    
-    if not sources:
-        # 默认源（用于测试）
-        sources = [
-            'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/cn.m3u',
-            'https://raw.githubusercontent.com/Free-IPTV/Countries/master/CN.m3u'
-        ]
-    
-    sorted_channels = process_sources(sources)
-    
-    if sorted_channels:
-        generate_files(sorted_channels)
-        print(f"成功生成 {len(sorted_channels)} 个频道列表")
-        print("输出文件: output/live.m3u 和 output/live.txt")
-    else:
-        print("未发现有效频道源")
-        exit(1)
+    print(f"Generated {len(entries)} channels")

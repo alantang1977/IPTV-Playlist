@@ -116,7 +116,6 @@ class M3UProcessor:
 if __name__ == "__main__":
     # 配置源列表（支持多个源）
     SOURCE_URLS = [
-        "https://gh.tryxd.cn/https://raw.githubusercontent.com/yuanzl77/IPTV/main/live.m3u",
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt",
         "https://live.kilvn.com/iptv.m3u",
         "https://codeberg.org/sy147258/iptv/raw/branch/main/电视",
@@ -124,6 +123,7 @@ if __name__ == "__main__":
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/tianya7981/jiekou/refs/heads/main/野火959",
         "https://tv.iill.top/m3u/Gather",
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.txt",
+        "https://gh.tryxd.cn/https://raw.githubusercontent.com/yuanzl77/IPTV/main/live.m3u",
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/wwb521/live/main/tv.m3u",
         "http://aktv.space/live.m3u",
         # 在此添加更多源...

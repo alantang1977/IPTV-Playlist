@@ -23,7 +23,7 @@ jobs:
         
     - name: Run generator
       env:
-        INPUT_SOURCES: >
+        INPUT_SOURCES:
           https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt
           https://raw.githubusercontent.com/iptv-org/iptv/master/streams/cn.m3u
       run: python iptv_processor.py

@@ -124,6 +124,8 @@ if __name__ == "__main__":
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/tianya7981/jiekou/refs/heads/main/野火959",
         "https://tv.iill.top/m3u/Gather",
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.txt",
+        "https://gh.tryxd.cn/https://raw.githubusercontent.com/wwb521/live/main/tv.m3u",
+        "http://aktv.space/live.m3u",
         # 在此添加更多源...
     ]
 

@@ -1,0 +1,37 @@
+name: Update IPTV List
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天UTC时间0点运行
+  workflow_dispatch:     # 支持手动触发
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: pip install requests
+        
+    - name: Run generator
+      env:
+        INPUT_SOURCES: >
+          https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt
+          https://raw.githubusercontent.com/iptv-org/iptv/master/streams/cn.m3u
+      run: python iptv_processor.py
+      
+    - name: Commit changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add output/live.*
+        git commit -m "Auto-update IPTV lists" || echo "No changes to commit"
+        git push

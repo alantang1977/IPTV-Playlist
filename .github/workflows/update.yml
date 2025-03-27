@@ -1,36 +1,28 @@
 name: IPTV List Generator
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点自动运行
-  workflow_dispatch:     # 支持手动触发
+  push:
+    branches:
+      - main
 
 jobs:
-  generate:
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
+    - name: Checkout repo
+      uses: actions/checkout@v2
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: '3.10'
-        
-    - name: Install dependencies
-      run: pip install requests
 
-    - name: Run generator
-      env:
-        INPUT_SOURCES: ${{ secrets.INPUT_SOURCES }}  # 从仓库Secrets获取源
+    - name: Install dependencies
       run: |
-        python iptv_generator.py
-        
-    - name: Commit changes
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run IPTV generator
       run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add output/live.*
-        git commit -m "自动更新IPTV列表 [$(date +'%Y-%m-%d')]" || echo "无变化"
-        git push
+        python /home/runner/work/IPTV-Playlist/IPTV-Playlist/iptv_generator.py

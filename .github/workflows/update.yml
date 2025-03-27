@@ -21,7 +21,7 @@ jobs:
       run: pip install requests
 
     - name: Run generator
-      run: python iptv_generator.py
+      run: python iptv_processor.py
 
     - name: Commit changes
       run: |

@@ -116,6 +116,7 @@ class M3UProcessor:
 if __name__ == "__main__":
     # 配置源列表（支持多个源）
     SOURCE_URLS = [
+        "https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/IPTV_SuperB/refs/heads/main/output/live_ipv4.m3u",
         "https://gh.tryxd.cn/https://raw.githubusercontent.com/alantang1977/auto-iptv/main/live_ipv4.txt",
         "https://live.kilvn.com/iptv.m3u",
         "https://codeberg.org/sy147258/iptv/raw/branch/main/电视",
